@@ -1,10 +1,10 @@
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 import { Context } from "../context";
 
 import { io } from "socket.io-client";
 
-// const socket = io("http://139.150.83.176:8000", { transports: ["websocket"] });
-const socket = io("http://localhost:8000", { transports: ["websocket"] });
+const socket = io("http://139.150.83.176:3000", { transports: ["websocket"] });
+// const socket = io("http://localhost:3000", { transports: ["websocket"] });
 
 export default function Home() {
   const {
@@ -17,12 +17,15 @@ export default function Home() {
     lastInputFocus,
     setLastInputFocus,
   } = useContext(Context);
+  const focusRef = useRef();
+  // window.scrollTo({ behavior: "smooth", top: focusRef.current.offsetTop });
   useEffect(() => {
     if (lastInputFocus) {
       const lastInput = document.querySelectorAll(".room > ul > li");
       lastInput && lastInput[lastInput.length - 1]?.focus();
       setLastInputFocus(false);
     }
+    scrollToBottom();
   });
   const exitRoom = () => {
     socket.disconnect();
@@ -33,6 +36,7 @@ export default function Home() {
     const room = document.querySelector(".room");
     welcome.classList.add("hidden");
     room.classList.remove("hidden");
+    room.querySelector("input").focus();
     socket.emit("enter_room", roomName);
   };
   const sendMessage = () => {
@@ -46,6 +50,9 @@ export default function Home() {
       setLastInputFocus(true);
     }
   };
+  const scrollToBottom = () => {
+    focusRef.current.scrollIntoView({ behavior: "smooth" });
+  };
 
   socket.on("welcome", () => {
     setMessageArr([...messageArr, "someone joined!"]);
@@ -53,7 +60,7 @@ export default function Home() {
   socket.on("bye", () => {
     setMessageArr([...messageArr, "someone left."]);
   });
-  socket.on("send_message", (roomName, msg) => {
+  socket.on("send_message", (room, msg) => {
     setMessageArr([...messageArr, msg]);
   });
 
@@ -81,6 +88,7 @@ export default function Home() {
           {messageArr.map((item, index) => (
             <li key={index}>{item}</li>
           ))}
+          <div ref={focusRef}></div>
         </ul>
         <form onSubmit={(e) => e.preventDefault()}>
           <input
